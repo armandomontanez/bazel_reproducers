@@ -91,7 +91,7 @@ def _impl(ctx):
     # MODIFIED: There used to be a lot more here...
 
     # Just an arbitrary feature to see what happens.
-    libraries_to_link_feature = feature(
+    foo_feature = feature(
         name = "feature_foo_unique",
         flag_sets = [
             flag_set(
@@ -107,7 +107,7 @@ def _impl(ctx):
     )
 
     action_configs = []
-    features = [libraries_to_link_feature]
+    features = [foo_feature]
 
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
