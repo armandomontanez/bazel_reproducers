@@ -1,7 +1,4 @@
 # Flag groups with empty strings in `expand_if_*`
-This is NOT production ready. It simply forks the generated `local_config_cc`
-external repository and is not hermetic by any means.
-
 The key takeaway from this example is that passing an empty string rather than
 `None` into a `flag_group()` constructor has unexpected behavior. More
 specifically, the empty string is happily literally treated like a string of
