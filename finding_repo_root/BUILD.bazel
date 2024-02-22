@@ -1,0 +1,9 @@
+exports_files(
+    ["message.txt"],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "echo_message",
+    actual = "@inner//:echo_message",
+)

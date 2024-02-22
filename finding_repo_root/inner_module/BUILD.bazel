@@ -1,0 +1,12 @@
+exports_files(
+    ["message.txt"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "echo_message",
+    outs = ["result.txt"],
+    srcs = ["@@//:message.txt"],
+    cmd = "cat $< | tee - $@",
+    visibility = ["//visibility:public"],
+)
