@@ -1,0 +1,20 @@
+module(
+    name = "actual",
+    version = "0.0.1",
+)
+
+bazel_dep(name = "foo_external", version = "0.0.1")
+
+local_path_override(
+    module_name = "foo_external",
+    path = "../foo_external",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "rules_python", version = "1.0.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    is_default = True,
+    python_version = "3.11",
+)

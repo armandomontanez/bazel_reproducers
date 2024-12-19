@@ -1,0 +1,6 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+
+native_test(
+    name = "failing_test",
+    src = "@foo_external//:py_binary_with_proto",
+)
