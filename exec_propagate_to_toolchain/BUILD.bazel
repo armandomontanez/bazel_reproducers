@@ -1,0 +1,30 @@
+load("//:custom_toolchain.bzl", "nop_test", "my_toolchain", "symlink_with_toolchain")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+
+toolchain_type(name = "arbitrary_toolchain")
+
+symlink_with_toolchain(
+    name = "exec_tool",
+    src = "test.sh",
+)
+
+nop_test(
+    name = "foo_test",
+    tool = ":exec_tool",
+)
+
+bool_flag(
+    name = "the_flag_we_need_but_do_not_deserve",
+    build_setting_default = False,
+)
+
+my_toolchain(
+    name = "custom_toolchain_actual",
+    config_flag = ":the_flag_we_need_but_do_not_deserve",
+)
+
+toolchain(
+    name = "custom_toolchain",
+    toolchain = ":custom_toolchain_actual",
+    toolchain_type = ":arbitrary_toolchain",
+)

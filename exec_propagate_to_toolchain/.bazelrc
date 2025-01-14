@@ -1,0 +1,4 @@
+common --experimental_exclude_defines_from_exec_config
+common --experimental_exclude_starlark_flags_from_exec_config
+
+common --//:the_flag_we_need_but_do_not_deserve=True
