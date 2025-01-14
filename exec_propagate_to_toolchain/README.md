@@ -15,7 +15,6 @@ the target and exec toolchain when the two are the same.
 It's possible that this nuanced dissonance is causing latent bugs where the
 build behaviors of target artifacts and exec artifacts are *slightly* different.
 
-
 ## Simplified, concrete example
 If you build `protoc` it could be slightly different than a `protoc` built
 after an `exec` transition if you pass any flags via the CLI or `.bazelrc` that

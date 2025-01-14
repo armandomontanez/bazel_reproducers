@@ -2,6 +2,8 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 def _symlink_with_toolchain_impl(ctx):
     test_script = ctx.actions.declare_file(ctx.label.name)
+    # This branch would be hit hit because this is evaluated from the exec
+    # configuration, except that the toolchain fails first.
     if not ctx.toolchains["//:arbitrary_toolchain"].flag_value:
         fail("Toolchain flag not flipped when symlinking from exec")
     ctx.actions.symlink(
@@ -21,6 +23,8 @@ symlink_with_toolchain = rule(
 
 def _nop_test_impl(ctx):
     test_script = ctx.actions.declare_file(ctx.label.name)
+    # This branch isn't hit because this is always evaluated from the target
+    # configuration.
     if not ctx.toolchains["//:arbitrary_toolchain"].flag_value:
         fail("Toolchain flag not flipped when symlinking from target")
     ctx.actions.symlink(
@@ -41,6 +45,9 @@ nop_test = rule(
 
 
 def _my_toolchain_impl(ctx):
+    # This branch works once when evaluating `nop_test` (target platform), but
+    # fails after the transition to the exec platform because of the `tool`
+    # dependency on the nop_test.
     if not ctx.attr.config_flag[BuildSettingInfo].value:
         fail("The configuration flag didn't apply as expected when evaluating the toolchain")
     return platform_common.ToolchainInfo(
