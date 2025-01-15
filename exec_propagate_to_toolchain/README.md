@@ -21,5 +21,4 @@ after an `exec` transition if you pass any flags via the CLI or `.bazelrc` that
 affect how `protoc` is compiled.
 
 ## Workaround
-The only known workaround is to specify an explicit exec platform and host
-platform that are known to be identical.
+Use `--experimental_propagate_custom_flag` to tell Bazel to propagate the flag.
