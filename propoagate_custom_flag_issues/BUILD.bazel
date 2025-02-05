@@ -1,0 +1,32 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+load(":exec_shim.bzl", "exec_shim")
+
+toolchain_type(name = "arbitrary_toolchain")
+
+config_setting(
+    name = "flag_enabled",
+    flag_values = {
+        "@external_repo//external_flag": "True",
+    },
+)
+
+exec_shim(
+    name = "exec_bar",
+    target = ":bar",
+)
+
+filegroup(
+    name = "bar",
+    data = ["data.txt"],
+    target_compatible_with = select({
+        ":flag_enabled": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+)
+
+native_test(
+    name = "foo_test",
+    src = "test.sh",
+    data = [":exec_bar"],
+)

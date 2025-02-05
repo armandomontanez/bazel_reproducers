@@ -1,0 +1,6 @@
+common --experimental_exclude_defines_from_exec_config
+common --experimental_exclude_starlark_flags_from_exec_config
+
+common --experimental_propagate_custom_flag=@external_repo//external_flag
+common --@external_repo//external_flag=True
+common:workaround --experimental_propagate_custom_flag=@@+_repo_rules+external_repo//external_flag:external_flag

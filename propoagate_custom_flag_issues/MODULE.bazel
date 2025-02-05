@@ -1,0 +1,14 @@
+module(
+    name = "reproducer",
+    version = "0.0.1",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "rules_platform", version = "0.1.0")
+
+register_toolchains("//:custom_toolchain")
+flag_repo = use_repo_rule("//:flag_repo.bzl", "flag_repo")
+flag_repo(
+    name = "external_repo",
+)
