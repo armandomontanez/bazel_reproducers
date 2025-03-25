@@ -1,0 +1,24 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+
+bool_flag(
+   name = "my_flag",
+   build_setting_default = False,
+)
+
+config_setting(
+    name = "my_config_setting",
+    flag_values = {":my_flag": "false"},
+)
+
+cc_test(
+    name = "my_test",
+    defines = select({
+        ":my_config_setting": ["CONFIG_IS_SET=1"],
+        "//conditions:default": [],
+    }),
+    srcs = ["test.cc"],
+    deps = [
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
