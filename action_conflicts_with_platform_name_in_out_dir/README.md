@@ -1,8 +1,8 @@
 # Conflict between @local_config_platform//:host and @platforms//host
 ## Summary
 When `--experimental_platform_in_output_dir` is enabled, any C++ compile
-actions targeting `@local_config_platform//:host` will conflict with
-`@platforms//host`.
+actions targeting `@local_config_platform//:host` will conflict with identical
+actions targeting `@platforms//host`.
 
 ## Reproducing
 Run the following command:
