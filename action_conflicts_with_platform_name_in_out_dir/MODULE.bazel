@@ -1,0 +1,5 @@
+module(name = "reproducer")
+
+bazel_dep(name = "rules_python", version = "0.40.0")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_platform", version = "0.1.0")

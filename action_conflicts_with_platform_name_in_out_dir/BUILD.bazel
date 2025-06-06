@@ -1,0 +1,26 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_platform//platform_data:defs.bzl", "platform_data")
+
+cc_binary(
+    name = "data_binary",
+    srcs = ["main.cc"],
+)
+
+platform_data(
+    name = "explicit_host_binary",
+    # Note that today the default host platform is @bazel_tools//tools:host_platform
+    # which in turn is an alias pointing to @platforms//host.
+    platform = "@local_config_platform//:host",
+    target = ":data_binary",
+)
+
+py_binary(
+    name = "main_binary",
+    main = "outer.py",
+    srcs = ["outer.py"],
+    data = [
+        ":data_binary",
+        ":explicit_host_binary",
+    ],
+)
