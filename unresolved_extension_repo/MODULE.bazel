@@ -1,0 +1,6 @@
+module(name = "reproducer", version = "0.1.0")
+
+bazel_dep(name = "rules_cc", version = "0.2.0")
+
+my_extension = use_extension("//:extension.bzl", "my_extension")
+use_repo(my_extension, "my_repo", "platforms_repo")
