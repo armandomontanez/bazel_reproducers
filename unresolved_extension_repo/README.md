@@ -1,4 +1,4 @@
-# Repo rule exposed by module extension evaluates
+# Repo rule exposed by module extension isn't properly evaluated
 
 Several users have reported cases where a repository fails to exist under the following conditions:
 
@@ -15,7 +15,15 @@ ERROR: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no suc
 
 ## Notes
 
-*This example currently does NOT reproduce the error.*
+From what I've seen, this **ONLY** reproduces for `bazel info` when using `--platforms`:
+```
+$ bazelisk info --platforms=@platforms_repo//:my_platform
+ERROR: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no such package '@@platforms_repo//': The repository '@@platforms_repo' could not be resolved: Repository '@@platforms_repo' is not defined
+```
+
+Note that `--@my_repo//:my_flag=//:hello_world` does NOT fail under `bazel info`.
+
+*Build commands do NOT reproduce this error*
 
 ```
 $ bazelisk build --platforms=@platforms_repo//:my_platform //:hello_world
@@ -24,11 +32,3 @@ $ bazelisk build --platforms=@platforms_repo//:my_platform //:hello_world
 ```
 $ bazelisk build --@my_repo//:my_flag=//:hello_world //:hello_world
 ```
-
-HOWEVER, this **does** reproduce for `bazel info` when using `--platforms`:
-```
-$ bazelisk info --platforms=@platforms_repo//:my_platform
-ERROR: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no such package '@@platforms_repo//': The repository '@@platforms_repo' could not be resolved: Repository '@@platforms_repo' is not defined
-```
-
-Note that `--@my_repo//:my_flag=//:hello_world` does NOT fail under `bazel info`.
