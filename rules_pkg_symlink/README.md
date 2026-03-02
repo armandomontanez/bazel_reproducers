@@ -1,7 +1,7 @@
 # Shared object symlink not created in pkg_tar
 
 Reproducer showing that `pkg_mklink` does not generate the expected symlink
-`pkg_files` is used at any stage in the middle.
+when `pkg_files` is used at any stage in the middle.
 
 ## Expected behavior
 
