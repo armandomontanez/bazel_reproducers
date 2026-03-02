@@ -1,0 +1,73 @@
+load("@rules_pkg//pkg:pkg.bzl", "pkg_tar")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "pkg_mklink", "pkg_filegroup")
+
+cc_binary(
+    name = "libmylib.so.1",
+    srcs = ["mylib.c"],
+    linkshared = True,
+    visibility = ["//visibility:public"],
+)
+
+pkg_mklink(
+    name = "mylib_symlink",
+    target = "libmylib.so.1",
+    link_name = "usr/lib/libmylib.so",
+)
+
+pkg_filegroup(
+    name = "mylib_symlink_filegroup",
+    srcs = [
+        ":mylib_symlink",
+    ],
+)
+
+pkg_files(
+    name = "mylib_package",
+    srcs = [
+        ":libmylib.so.1",
+        ":mylib_symlink_filegroup",
+    ],
+    prefix = "usr/lib",
+    visibility = ["//visibility:public"],
+)
+
+pkg_tar(
+    name = "working_archive",
+    srcs = [
+        ":mylib_package",
+        ":mylib_symlink",
+    ],
+)
+
+pkg_tar(
+    name = "broken_archive",
+    srcs = [":mylib_package"],
+)
+
+py_binary(
+    name = "check_archive_path",
+    srcs = ["check_archive_path.py"],
+)
+
+native_test(
+    name = "broken_archive_test",
+    src = ":check_archive_path",
+    args = [
+        "$(rootpath :broken_archive)",
+        "usr/lib/libmylib.so",
+    ],
+    data = [":broken_archive"],
+)
+
+native_test(
+    name = "working_archive_test",
+    src = ":check_archive_path",
+    args = [
+        "$(rootpath :working_archive)",
+        "usr/lib/libmylib.so",
+    ],
+    data = [":working_archive"],
+)
