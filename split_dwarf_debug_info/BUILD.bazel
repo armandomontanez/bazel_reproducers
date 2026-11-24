@@ -1,0 +1,128 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_library.bzl", "py_library")
+load(":debug_info_variant.bzl", "debug_info_variant")
+
+exports_files(["debug_bloat.cc"])
+
+# Every variant is the same source file linked into a shared library. All but
+# no_debug_info and full_debug_info_tsan are ASAN builds to mirror the original
+# question.
+VARIANTS = {
+    "no_debug_info": {
+        "features": ["asan"],
+    },
+    "full_debug_info": {
+        "features": [
+            "asan",
+            "full_debug_info",
+        ],
+    },
+    "full_debug_info_tsan": {
+        "features": [
+            "tsan",
+            "full_debug_info",
+        ],
+    },
+    "full_debug_info_relative": {
+        "features": [
+            "asan",
+            "full_debug_info",
+            "relative_compilation_dir",
+        ],
+    },
+    "compressed_debug_info": {
+        "features": [
+            "asan",
+            "full_debug_info",
+            "compress_debug_sections",
+        ],
+    },
+    "compressed_debug_info_relative": {
+        "features": [
+            "asan",
+            "full_debug_info",
+            "compress_debug_sections",
+            "relative_compilation_dir",
+        ],
+    },
+    "line_tables_only_relative": {
+        "features": [
+            "asan",
+            "line_tables_only",
+            "relative_compilation_dir",
+        ],
+    },
+    # The proposed trick: --fission=no with -gsplit-dwarf passed directly.
+    "split_dwarf_copt": {
+        "features": [
+            "asan",
+            "full_debug_info",
+            "split_dwarf_copt",
+        ],
+    },
+    "split_dwarf_copt_relative": {
+        "features": [
+            "asan",
+            "full_debug_info",
+            "split_dwarf_copt",
+            "relative_compilation_dir",
+        ],
+    },
+    # Bazel's builtin fission support.
+    "native_fission": {
+        "features": [
+            "asan",
+            "full_debug_info",
+        ],
+        "fission": True,
+    },
+    "native_fission_relative": {
+        "features": [
+            "asan",
+            "full_debug_info",
+            "relative_compilation_dir",
+        ],
+        "fission": True,
+    },
+}
+
+[
+    debug_info_variant(
+        name = name,
+        features = variant["features"],
+        fission = variant.get("fission", False),
+    )
+    for name, variant in VARIANTS.items()
+]
+
+py_library(
+    name = "elf_debug_info",
+    srcs = ["elf_debug_info.py"],
+)
+
+py_binary(
+    name = "check_hermeticity",
+    srcs = ["check_hermeticity.py"],
+    deps = [":elf_debug_info"],
+)
+
+py_binary(
+    name = "check_dwo_references",
+    srcs = ["check_dwo_references.py"],
+    deps = [":elf_debug_info"],
+)
+
+py_binary(
+    name = "size_report_bin",
+    srcs = ["size_report.py"],
+    main = "size_report.py",
+    deps = [":elf_debug_info"],
+)
+
+native_test(
+    name = "size_report",
+    src = ":size_report_bin",
+    args = ["$(rootpath :{})".format(name) for name in VARIANTS],
+    data = [":" + name for name in VARIANTS],
+)

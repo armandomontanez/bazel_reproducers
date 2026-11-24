@@ -1,0 +1,341 @@
+load("@bazel_skylib//lib:selects.bzl", "selects")
+load("@rules_cc//cc/toolchains:args.bzl", "cc_args")
+load("@rules_cc//cc/toolchains:feature.bzl", "cc_feature")
+load("@rules_cc//cc/toolchains:mutually_exclusive_category.bzl", "cc_mutually_exclusive_category")
+load("@rules_cc//cc/toolchains:tool.bzl", "cc_tool")
+load("@rules_cc//cc/toolchains:tool_map.bzl", "cc_tool_map")
+load("@rules_cc//cc/toolchains:toolchain.bzl", "cc_toolchain")
+load("@rules_cc//cc/toolchains/args:sysroot.bzl", "cc_sysroot")
+
+package(default_visibility = ["//visibility:public"])
+
+# Every variant in //:BUILD.bazel targets Linux ELF so that split DWARF is
+# actually available. Mach-O silently ignores -gsplit-dwarf.
+toolchain(
+    name = "linux_x86_64_toolchain",
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    toolchain = ":linux_x86_64_clang",
+    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
+)
+
+cc_toolchain(
+    name = "linux_x86_64_clang",
+    args = [
+        ":target",
+        ":no_canonical_prefixes",
+        ":linux_sysroot",
+    ],
+    compiler = "clang",
+    enabled_features = ["@rules_cc//cc/toolchains/args:experimental_replace_legacy_action_config_features"],
+    known_features = [
+        "@rules_cc//cc/toolchains/args:experimental_replace_legacy_action_config_features",
+        ":asan",
+        ":tsan",
+        ":full_debug_info",
+        ":line_tables_only",
+        ":split_dwarf_copt",
+        ":relative_compilation_dir",
+        ":compress_debug_sections",
+    ],
+    tool_map = ":tools",
+)
+
+#################################
+#           Features            #
+#################################
+
+cc_mutually_exclusive_category(name = "sanitizer")
+
+cc_mutually_exclusive_category(name = "debug_info_level")
+
+cc_feature(
+    name = "asan",
+    args = [":asan_args"],
+    feature_name = "asan",
+    mutually_exclusive = [":sanitizer"],
+)
+
+cc_args(
+    name = "asan_args",
+    actions = [
+        "@rules_cc//cc/toolchains/actions:compile_actions",
+        "@rules_cc//cc/toolchains/actions:link_actions",
+    ],
+    args = [
+        "-fsanitize=address",
+        "-fno-omit-frame-pointer",
+    ],
+)
+
+cc_feature(
+    name = "tsan",
+    args = [":tsan_args"],
+    feature_name = "tsan",
+    mutually_exclusive = [":sanitizer"],
+)
+
+cc_args(
+    name = "tsan_args",
+    actions = [
+        "@rules_cc//cc/toolchains/actions:compile_actions",
+        "@rules_cc//cc/toolchains/actions:link_actions",
+    ],
+    args = ["-fsanitize=thread"],
+)
+
+cc_feature(
+    name = "full_debug_info",
+    args = [":full_debug_info_args"],
+    feature_name = "full_debug_info",
+    mutually_exclusive = [":debug_info_level"],
+)
+
+cc_args(
+    name = "full_debug_info_args",
+    actions = ["@rules_cc//cc/toolchains/actions:compile_actions"],
+    args = ["-g"],
+)
+
+# Sufficient for symbolized sanitizer reports (including inlined frames).
+cc_feature(
+    name = "line_tables_only",
+    args = [":line_tables_only_args"],
+    feature_name = "line_tables_only",
+    mutually_exclusive = [":debug_info_level"],
+)
+
+cc_args(
+    name = "line_tables_only_args",
+    actions = ["@rules_cc//cc/toolchains/actions:compile_actions"],
+    args = ["-gline-tables-only"],
+)
+
+# The "trick": split DWARF requested behind Bazel's back. The compiler writes a
+# .dwo next to each .o, but Bazel never declares it as an action output.
+# Contrast with --fission=yes, which drives the builtin per_object_debug_info
+# feature and declares the .dwo files.
+cc_feature(
+    name = "split_dwarf_copt",
+    args = [":split_dwarf_copt_args"],
+    feature_name = "split_dwarf_copt",
+)
+
+cc_args(
+    name = "split_dwarf_copt_args",
+    actions = ["@rules_cc//cc/toolchains/actions:compile_actions"],
+    args = ["-gsplit-dwarf"],
+)
+
+# Replaces the absolute working directory recorded in DW_AT_comp_dir (and line
+# table directory 0) with ".".
+cc_feature(
+    name = "relative_compilation_dir",
+    args = [":relative_compilation_dir_args"],
+    feature_name = "relative_compilation_dir",
+)
+
+cc_args(
+    name = "relative_compilation_dir_args",
+    actions = ["@rules_cc//cc/toolchains/actions:compile_actions"],
+    args = ["-ffile-compilation-dir=."],
+)
+
+cc_feature(
+    name = "compress_debug_sections",
+    args = [":compress_debug_sections_args"],
+    feature_name = "compress_debug_sections",
+)
+
+cc_args(
+    name = "compress_debug_sections_args",
+    actions = [
+        "@rules_cc//cc/toolchains/actions:compile_actions",
+        "@rules_cc//cc/toolchains/actions:link_actions",
+    ],
+    args = ["-gz=zlib"],
+)
+
+#################################
+#        Toolchain args         #
+#################################
+
+cc_args(
+    name = "target",
+    actions = [
+        "@rules_cc//cc/toolchains/actions:compile_actions",
+        "@rules_cc//cc/toolchains/actions:link_actions",
+    ],
+    args = ["--target=x86_64-unknown-linux-gnu"],
+)
+
+cc_args(
+    name = "no_canonical_prefixes",
+    actions = ["@rules_cc//cc/toolchains/actions:compile_actions"],
+    args = ["-no-canonical-prefixes"],
+)
+
+cc_sysroot(
+    name = "linux_sysroot",
+    data = [
+        "@linux_sysroot//:root",
+        "@linux_sysroot//:usr-include",
+        "@linux_sysroot//:usr-include-x86_64-linux-gnu",
+    ],
+    sysroot = "@linux_sysroot//:root",
+)
+
+#################################
+#             Tools             #
+#################################
+
+cc_tool_map(
+    name = "tools",
+    tags = ["manual"],
+    tools = {
+        "@rules_cc//cc/toolchains/actions:ar_actions": ":llvm-ar",
+        "@rules_cc//cc/toolchains/actions:assembly_actions": ":clang",
+        "@rules_cc//cc/toolchains/actions:c_compile": ":clang",
+        "@rules_cc//cc/toolchains/actions:cpp_compile_actions": ":clang++",
+        "@rules_cc//cc/toolchains/actions:dwp": ":llvm-dwp",
+        "@rules_cc//cc/toolchains/actions:link_actions": ":lld",
+        "@rules_cc//cc/toolchains/actions:objcopy_embed_data": ":llvm-objcopy",
+        "@rules_cc//cc/toolchains/actions:strip": ":llvm-strip",
+    },
+)
+
+cc_tool(
+    name = "clang",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/clang",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/clang",
+    }),
+    capabilities = ["@rules_cc//cc/toolchains/capabilities:supports_pic"],
+    data = [
+        ":exec_platform_builtin_headers",
+        ":exec_platform_multicall_support_files",
+    ],
+    tags = ["manual"],
+)
+
+cc_tool(
+    name = "clang++",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/clang++",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/clang++",
+    }),
+    capabilities = ["@rules_cc//cc/toolchains/capabilities:supports_pic"],
+    data = [
+        ":exec_platform_builtin_headers",
+        ":exec_platform_multicall_support_files",
+    ],
+    tags = ["manual"],
+)
+
+cc_tool(
+    name = "lld",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/clang++",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/clang++",
+    }),
+    data = [
+        ":exec_platform_linker_builtins",
+        ":exec_platform_multicall_support_files",
+    ],
+    tags = ["manual"],
+)
+
+cc_tool(
+    name = "llvm-ar",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/llvm-ar",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/llvm-ar",
+    }),
+    data = [":exec_platform_multicall_support_files"],
+    tags = ["manual"],
+)
+
+cc_tool(
+    name = "llvm-dwp",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/llvm-dwp",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/llvm-dwp",
+    }),
+    data = [":exec_platform_multicall_support_files"],
+    tags = ["manual"],
+)
+
+cc_tool(
+    name = "llvm-objcopy",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/llvm-objcopy",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/llvm-objcopy",
+    }),
+    data = [":exec_platform_multicall_support_files"],
+    tags = ["manual"],
+)
+
+cc_tool(
+    name = "llvm-strip",
+    src = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:bin/llvm-strip",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:bin/llvm-strip",
+    }),
+    data = [":exec_platform_multicall_support_files"],
+    tags = ["manual"],
+)
+
+#################################
+#   Platform-specific aliases   #
+#################################
+
+# The select statements in these aliases are evaluated under the exec
+# configuration.
+
+alias(
+    name = "exec_platform_builtin_headers",
+    actual = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:builtin_headers",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:builtin_headers",
+    }),
+    tags = ["manual"],
+    visibility = ["//visibility:private"],
+)
+
+alias(
+    name = "exec_platform_multicall_support_files",
+    actual = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:multicall_support_files",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:multicall_support_files",
+    }),
+    tags = ["manual"],
+    visibility = ["//visibility:private"],
+)
+
+alias(
+    name = "exec_platform_linker_builtins",
+    actual = select({
+        ":exec_linux_x86_64": "@clang-linux-x86_64//:linker_builtins",
+        ":exec_macos_aarch64": "@clang-macos-aarch64//:linker_builtins",
+    }),
+    tags = ["manual"],
+    visibility = ["//visibility:private"],
+)
+
+selects.config_setting_group(
+    name = "exec_linux_x86_64",
+    match_all = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+selects.config_setting_group(
+    name = "exec_macos_aarch64",
+    match_all = [
+        "@platforms//os:macos",
+        "@platforms//cpu:aarch64",
+    ],
+)

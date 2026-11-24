@@ -1,0 +1,5 @@
+# Only the toolchain in //toolchain should ever be used.
+build --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+build --verbose_failures
+
+test --test_output=errors
